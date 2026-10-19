@@ -1,98 +1,109 @@
-package lesson2
+package homework
 
-// FizzBuzz возвращает FizzBuzz, Fizz, Buzz или пустую строку для обычного числа.
-// Для n <= 0 возвращает invalid.
-func FizzBuzz(n int) string {
-	switch {
-	case n > 0:
-		switch {
-		case n%15 == 0:
-			return "FizzBuzz"
-		case n%3 == 0:
-			return "Fizz"
-		case n%5 == 0:
-			return "Buzz"
-		default:
-			return ""
-		}
-	default:
-		return "invalid"
-	}
+// PairInput соответствует объекту nums/target из условия контеста.
+type PairInput struct {
+	Nums   []int
+	Target int
 }
 
-// Sum возвращает сумму. Для пустого среза и nil возвращает 0.
-func Sum(values []int64) int64 {
-	if values == nil {
-		return 0
+// longestPrefix возвращает самый длинный общий префикс строк.
+func longestPrefix(words []string) string {
+	if words == nil || len(words) == 0 {
+		return ""
 	}
-	var res int64 = 0
-	for _, v := range values {
-		res += v
+	res := ""
+	for i := 0; ; i++ {
+		if i >= len(words[0]) {
+			break
+		}
+		r := []rune(words[0])[i]
+		correct := true
+		for _, word := range words[1:] {
+			if i >= len(word) || []rune(word)[i] != r {
+				correct = false
+				break
+			}
+		}
+		if correct {
+			res = res + string(r)
+		} else {
+			break
+		}
 	}
 	return res
 }
 
-// Min возвращает минимум. Для пустого среза и nil возвращает 0 по условию задачи.
-func Min(values []int64) int64 {
-	if (values == nil) || (len(values) == 0) {
-		return 0
-	}
-	mmin := values[0]
-	for _, v := range values {
-		if v < mmin {
-			mmin = v
+// pairIndices возвращает индексы двух разных элементов по возрастанию.
+func pairIndices(input PairInput) [2]int {
+	for i := 0; i < len(input.Nums)-1; i++ {
+		toSearch := input.Target - input.Nums[i]
+		for j := i + 1; j < len(input.Nums); j++ {
+			if toSearch == input.Nums[j] {
+				return [2]int{i, j}
+			}
 		}
 	}
-	return mmin
+	return [2]int{-1, -1}
 }
 
-// Max возвращает максимум. Для пустого среза и nil возвращает 0 по условию задачи.
-func Max(values []int64) int64 {
-	if (values == nil) || (len(values) == 0) {
-		return 0
+// hasDuplicate сообщает, встречается ли какое-либо значение повторно.
+func hasDuplicate(nums []int) bool {
+	if nums == nil || len(nums) == 0 || len(nums) == 1 {
+		return false
 	}
-	mmax := values[0]
-	for _, v := range values {
-		if v > mmax {
-			mmax = v
+	freq := make(map[int]struct{}, len(nums))
+	for _, num := range nums {
+		if _, exists := freq[num]; !exists {
+			freq[num] = struct{}{}
+		} else {
+			return true
 		}
 	}
-	return mmax
+	return false
 }
 
-// Average возвращает среднее как float64. Для пустого среза и nil возвращает 0.
-func Average(values []int64) float64 {
-	if (values == nil) || (len(values) == 0) {
-		return 0
+// compactSorted создаёт независимый слайс уникальных значений.
+func compactSorted(nums []int) []int {
+	if nums == nil || len(nums) == 0 {
+		return []int{}
 	}
-	var sum float64 = 0
-	count := 0
-	for _, v := range values {
-		sum += float64(v)
-		count++
+	var res []int
+	for _, num := range nums {
+		if len(res) == 0 || res[len(res)-1] != num {
+			res = append(res, num)
+		}
 	}
-	return sum / float64(count)
+	return res
 }
 
-// Category возвращает invalid, small, regular или large по сумме в копейках.
-func Category(amount int64) string {
-	switch {
-	case amount < 0:
-		return "invalid"
-	case amount <= 9999:
-		return "small"
-	case amount <= 49999:
-		return "regular"
-	default:
-		return "large"
+// balancedBrackets проверяет пары и порядок закрытия скобок.
+func balancedBrackets(text string) bool {
+	var stack []rune
+	for _, r := range text {
+		switch r {
+		case '(', '[', '{':
+			stack = append(stack, r)
+		case ')':
+			if len(stack) == 0 || stack[len(stack)-1] != '(' {
+				return false
+			}
+			stack = stack[:len(stack)-1]
+		case ']':
+			if len(stack) == 0 || stack[len(stack)-1] != '[' {
+				return false
+			}
+			stack = stack[:len(stack)-1]
+		case '}':
+			if len(stack) == 0 || stack[len(stack)-1] != '{' {
+				return false
+			}
+			stack = stack[:len(stack)-1]
+		default:
+			return false
+		}
 	}
-}
-
-// RuneCount считает кодовые точки Unicode в строке через range.
-func RuneCount(text string) int {
-	count := 0
-	for range text {
-		count++
+	if len(stack) > 0 {
+		return false
 	}
-	return count
+	return true
 }
