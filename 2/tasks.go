@@ -1,5 +1,7 @@
 package homework
 
+import "unicode/utf8"
+
 // PairInput соответствует объекту nums/target из условия контеста.
 type PairInput struct {
 	Nums   []int
@@ -8,29 +10,21 @@ type PairInput struct {
 
 // longestPrefix возвращает самый длинный общий префикс строк.
 func longestPrefix(words []string) string {
-	if words == nil || len(words) == 0 {
+	if len(words) == 0 {
 		return ""
 	}
-	res := ""
-	for i := 0; ; i++ {
-		if i >= len(words[0]) {
-			break
+	prefix := words[0]
+	for _, w := range words[1:] {
+		i := 0
+		for i < len(prefix) && i < len(w) && prefix[i] == w[i] {
+			i++
 		}
-		r := []rune(words[0])[i]
-		correct := true
-		for _, word := range words[1:] {
-			if i >= len(word) || []rune(word)[i] != r {
-				correct = false
-				break
-			}
-		}
-		if correct {
-			res = res + string(r)
-		} else {
-			break
-		}
+		prefix = prefix[:i]
 	}
-	return res
+	for len(prefix) > 0 && !utf8.ValidString(prefix) {
+		prefix = prefix[:len(prefix)-1]
+	}
+	return prefix
 }
 
 // pairIndices возвращает индексы двух разных элементов по возрастанию.
