@@ -49,7 +49,7 @@ func main() {
 		fmt.Printf("некорректная обработка SendError, ошибка: %v\n", err)
 	}
 
-	errs := practice.SafeDispatch([]practice.Notifier{&practice.BrokenNotifier{BaseNotifier: bn}, &n1}, "заказ готов через SafeDispatch")
+	errs := practice.SafeDispatch([]practice.Notifier{&practice.BrokenNotifier{BaseNotifier: bn}, &n2}, "заказ готов через SafeDispatch")
 	if errs != nil && len(errs) == 1 && errors.Is(errs[0], practice.ErrNotifierPanic) {
 		fmt.Println("корректная обработка ErrNotifierPanic")
 	} else {
