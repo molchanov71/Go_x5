@@ -76,9 +76,10 @@ func requestID(next http.Handler) http.Handler {
 func recovery(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
+			requestID, _ := r.Context().Value(requestIDKey).(string)
 			if value := recover(); value != nil {
 				slog.Error("panic recovered",
-					"panic", value,
+					"request_id", requestID,
 					"method", r.Method,
 					"path", r.URL.Path,
 				)

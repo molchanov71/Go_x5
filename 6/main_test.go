@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -174,12 +176,21 @@ func TestEmptyName(t *testing.T) {
 }
 
 func TestRecovery(t *testing.T) {
+	var errorLog bytes.Buffer
+	previousLogger := slog.Default()
+	slog.SetDefault(slog.New(slog.NewJSONHandler(&errorLog, nil)))
+	t.Cleanup(func() {
+		slog.SetDefault(previousLogger)
+	})
+
 	r := chi.NewRouter()
+	r.Use(requestID)
 	r.Use(accessLog)
 	r.Use(recovery)
 
+	const panicValue = "test panic"
 	r.Get("/panic", func(w http.ResponseWriter, r *http.Request) {
-		panic("test panic")
+		panic(panicValue)
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/panic", nil)
@@ -192,6 +203,10 @@ func TestRecovery(t *testing.T) {
 	if got := rec.Header().Get("Content-Type"); got != "application/json" {
 		t.Errorf("Content-Type = %q, want application/json", got)
 	}
+	requestID := rec.Header().Get("X-Request-ID")
+	if requestID == "" {
+		t.Fatal("X-Request-ID header is empty")
+	}
 
 	var body struct {
 		Error string `json:"error"`
@@ -201,5 +216,42 @@ func TestRecovery(t *testing.T) {
 	}
 	if body.Error != "internal server error" {
 		t.Errorf("error = %q, want internal server error", body.Error)
+	}
+
+	if strings.Contains(errorLog.String(), panicValue) {
+		t.Errorf("panic value %q found in logs", panicValue)
+	}
+
+	foundAccessLog := false
+	foundRecoveryLog := false
+	for _, line := range strings.Split(strings.TrimSpace(errorLog.String()), "\n") {
+		var entry struct {
+			Message   string `json:"msg"`
+			RequestID string `json:"request_id"`
+			Status    int    `json:"status"`
+		}
+		if err := json.Unmarshal([]byte(line), &entry); err != nil {
+			t.Fatalf("decode log entry: %v", err)
+		}
+		switch entry.Message {
+		case "http request":
+			foundAccessLog = true
+			if entry.Status != http.StatusInternalServerError {
+				t.Errorf("access log status = %d, want 500", entry.Status)
+			}
+		case "panic recovered":
+			foundRecoveryLog = true
+		default:
+			continue
+		}
+		if entry.RequestID != requestID {
+			t.Errorf("%s request_id = %q, want %q", entry.Message, entry.RequestID, requestID)
+		}
+	}
+	if !foundAccessLog {
+		t.Error("http request access log entry not found")
+	}
+	if !foundRecoveryLog {
+		t.Error("panic recovered log entry not found")
 	}
 }
